@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>军事活动数据分析平台</title>
+    <title>軍事活動數據分析平台</title>
     <style>
         :root {
             --primary-color: #4285f4;
@@ -43,12 +43,6 @@
             margin: 0;
             color: var(--primary-color);
             font-weight: 600;
-        }
-        
-        .subtitle {
-            color: var(--light-text);
-            margin-top: 5px;
-            font-size: 0.95em;
         }
         
         .control-panel {
@@ -265,31 +259,31 @@
 <body>
     <div class="container">
         <header>
-            <h1>军事活动数据分析平台</h1>
-            <div class="subtitle">实时监控与预测解放军飞机和船舰活动</div>
+            <h1>軍事活動數據分析平台</h1>
+            <div class="subtitle">實時監控與預測解放軍飛機和船艦活動</div>
         </header>
         
         <div class="control-panel">
             <div class="form-group">
                 <div class="date-input">
-                    <label for="start-date">开始日期:</label>
+                    <label for="start-date">開始日期:</label>
                     <input type="date" id="start-date">
                 </div>
                 
                 <div class="date-input">
-                    <label for="end-date">结束日期:</label>
+                    <label for="end-date">結束日期:</label>
                     <input type="date" id="end-date">
                 </div>
                 
-                <button id="generate-btn" onclick="fetchChart()">
-                    <span id="btn-text">生成分析报告</span>
+                <button id="generate-btn">
+                    <span id="btn-text">生成分析報告</span>
                     <span id="btn-spinner" class="spinner" style="display: none;"></span>
                 </button>
             </div>
             
             <div id="loading" style="display: none;">
                 <div class="spinner"></div>
-                <p>正在分析数据，请稍候...</p>
+                <p>正在分析數據，請稍候...</p>
             </div>
             
             <div id="error-message"></div>
@@ -298,13 +292,13 @@
         <div class="dashboard">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">解放军飞机活动架次</h3>
+                    <h3 class="card-title">解放軍飛機活動架次</h3>
                 </div>
                 <div class="card-body">
                     <div class="chart-container" id="aircraft-chart">
                         <div class="error-placeholder">
                             <div class="icon">📊</div>
-                            <p>选择日期范围后显示飞机活动数据</p>
+                            <p>選擇日期範圍後顯示飛機活動數據</p>
                         </div>
                     </div>
                 </div>
@@ -312,13 +306,13 @@
             
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">解放军船舰活动架次</h3>
+                    <h3 class="card-title">解放軍船艦活動架次</h3>
                 </div>
                 <div class="card-body">
                     <div class="chart-container" id="vessel-chart">
                         <div class="error-placeholder">
                             <div class="icon">🚢</div>
-                            <p>选择日期范围后显示船舰活动数据</p>
+                            <p>選擇日期範圍後顯示船艦活動數據</p>
                         </div>
                     </div>
                 </div>
@@ -326,13 +320,13 @@
             
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">未来7天活动预测</h3>
+                    <h3 class="card-title">未來7天活動預測</h3>
                 </div>
                 <div class="card-body">
                     <div class="chart-container" id="forecast-chart">
                         <div class="error-placeholder">
                             <div class="icon">🔮</div>
-                            <p>预测数据将在分析后显示</p>
+                            <p>預測數據將在分析後顯示</p>
                         </div>
                     </div>
                 </div>
@@ -340,11 +334,11 @@
         </div>
         
         <div class="stats-panel">
-            <h2>活动统计摘要</h2>
+            <h2>活動統計摘要</h2>
             <div id="stats-container">
                 <div class="stats-grid" id="stats-content">
                     <div class="error-placeholder">
-                        <p>统计数据分析结果将显示在这里</p>
+                        <p>統計數據分析結果將顯示在這裡</p>
                     </div>
                 </div>
             </div>
@@ -352,24 +346,43 @@
     </div>
 
     <script>
-        // 设置API端点
+        // 防止擴展干擾
+        if (typeof window.trustedTypes !== 'undefined') {
+            window.trustedTypes.createPolicy('default', {
+                createHTML: (string) => string,
+                createScriptURL: (string) => string,
+                createScript: (string) => string
+            });
+        }
+
+        // 設置API端點
         const API_ENDPOINT = 'https://calendar-1087471739366.us-central1.run.app';
         
-        // 页面加载完成后初始化
+        // DOM元素引用
+        const generateBtn = document.getElementById('generate-btn');
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('error-message');
+        
+        // 初始化頁面
         document.addEventListener('DOMContentLoaded', function() {
-            // 设置默认日期范围（最近30天）
+            // 設置默認日期範圍（最近30天）
             const endDate = new Date();
             const startDate = new Date();
             startDate.setDate(endDate.getDate() - 30);
             
-            document.getElementById('start-date').valueAsDate = startDate;
-            document.getElementById('end-date').valueAsDate = endDate;
+            startDateInput.valueAsDate = startDate;
+            endDateInput.valueAsDate = endDate;
             
-            // 检查服务健康状态
+            // 添加事件監聽器（替代onclick屬性）
+            generateBtn.addEventListener('click', fetchChart);
+            
+            // 檢查服務健康狀態
             checkServiceHealth();
         });
 
-        // 格式化日期为YYYY-MM-DD
+        // 格式化日期為YYYY-MM-DD
         function formatDate(date) {
             const year = date.getFullYear();
             const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -377,37 +390,36 @@
             return `${year}-${month}-${day}`;
         }
 
-        // 检查服务健康状态
+        // 檢查服務健康狀態
         async function checkServiceHealth() {
             try {
                 const response = await fetch(`${API_ENDPOINT}/health`);
                 if (!response.ok) {
-                    throw new Error('服务不可用');
+                    throw new Error('服務不可用');
                 }
                 const data = await response.json();
                 
                 if (data.status !== 'ready') {
-                    showWarning('数据分析服务正在初始化，部分功能可能受限');
+                    showWarning('數據分析服務正在初始化，部分功能可能受限');
                 }
             } catch (error) {
-                showWarning('暂时无法连接数据分析服务，请稍后再试');
-                console.error('健康检查失败:', error);
+                showWarning('暫時無法連接數據分析服務，請稍後再試');
+                console.error('健康檢查失敗:', error);
             }
         }
 
-        // 显示错误消息
+        // 顯示錯誤消息
         function showError(message) {
-            const errorDiv = document.getElementById('error-message');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             
-            // 5秒后自动隐藏
+            // 5秒後自動隱藏
             setTimeout(() => {
                 errorDiv.style.display = 'none';
             }, 5000);
         }
 
-        // 显示警告横幅
+        // 顯示警告橫幅
         function showWarning(message) {
             const existingWarning = document.querySelector('.warning-banner');
             if (existingWarning) existingWarning.remove();
@@ -422,35 +434,35 @@
             document.querySelector('.control-panel').appendChild(warningBanner);
         }
 
-        // 清除所有图表和数据
+        // 清除所有圖表和數據
         function clearAllData() {
-            // 清除图表
+            // 清除圖表
             document.getElementById('aircraft-chart').innerHTML = `
                 <div class="error-placeholder">
                     <div class="icon">⏳</div>
-                    <p>数据加载中...</p>
+                    <p>數據加載中...</p>
                 </div>`;
                 
             document.getElementById('vessel-chart').innerHTML = `
                 <div class="error-placeholder">
                     <div class="icon">⏳</div>
-                    <p>数据加载中...</p>
+                    <p>數據加載中...</p>
                 </div>`;
                 
             document.getElementById('forecast-chart').innerHTML = `
                 <div class="error-placeholder">
                     <div class="icon">⏳</div>
-                    <p>预测计算中...</p>
+                    <p>預測計算中...</p>
                 </div>`;
             
-            // 清除统计数据
+            // 清除統計數據
             document.getElementById('stats-content').innerHTML = `
                 <div class="error-placeholder">
-                    <p>正在计算统计数据...</p>
+                    <p>正在計算統計數據...</p>
                 </div>`;
         }
 
-        // 更新图表显示
+        // 更新圖表顯示
         function updateChart(chartId, base64Data, title) {
             const chartContainer = document.getElementById(chartId);
             
@@ -458,8 +470,8 @@
                 chartContainer.innerHTML = `
                     <div class="error-placeholder">
                         <div class="icon">❌</div>
-                        <p>无法加载${title}图表</p>
-                        <small>数据服务暂时不可用</small>
+                        <p>無法加載${title}圖表</p>
+                        <small>數據服務暫時不可用</small>
                     </div>`;
                 return;
             }
@@ -471,18 +483,18 @@
                      onerror="this.parentElement.innerHTML = `
                         <div class='error-placeholder'>
                             <div class='icon'>❌</div>
-                            <p>图表渲染失败</p>
+                            <p>圖表渲染失敗</p>
                         </div>`">`;
         }
 
-        // 更新统计数据
+        // 更新統計數據
         function updateStats(stats) {
             const statsContainer = document.getElementById('stats-content');
             
             if (!stats || (Object.keys(stats).length === 0)) {
                 statsContainer.innerHTML = `
                     <div class="error-placeholder">
-                        <p>暂无可用统计数据</p>
+                        <p>暫無可用統計數據</p>
                     </div>`;
                 return;
             }
@@ -492,7 +504,7 @@
             if (stats.total_aircraft !== undefined) {
                 html += `
                 <div class="stat-item">
-                    <div class="stat-label">飞机总架次</div>
+                    <div class="stat-label">飛機總架次</div>
                     <div class="stat-value">${stats.total_aircraft.toLocaleString()}</div>
                 </div>`;
             }
@@ -500,7 +512,7 @@
             if (stats.total_vessel !== undefined) {
                 html += `
                 <div class="stat-item">
-                    <div class="stat-label">船舰总架次</div>
+                    <div class="stat-label">船艦總架次</div>
                     <div class="stat-value">${stats.total_vessel.toLocaleString()}</div>
                 </div>`;
             }
@@ -508,7 +520,7 @@
             if (stats.avg_aircraft !== undefined) {
                 html += `
                 <div class="stat-item">
-                    <div class="stat-label">日均飞机架次</div>
+                    <div class="stat-label">日均飛機架次</div>
                     <div class="stat-value">${stats.avg_aircraft.toFixed(1)}</div>
                 </div>`;
             }
@@ -516,47 +528,45 @@
             if (stats.avg_vessel !== undefined) {
                 html += `
                 <div class="stat-item">
-                    <div class="stat-label">日均船舰架次</div>
+                    <div class="stat-label">日均船艦架次</div>
                     <div class="stat-value">${stats.avg_vessel.toFixed(1)}</div>
                 </div>`;
             }
             
             statsContainer.innerHTML = html || `
                 <div class="error-placeholder">
-                    <p>无可用统计数据</p>
+                    <p>無可用統計數據</p>
                 </div>`;
         }
 
-        // 获取图表数据
+        // 獲取圖表數據
         async function fetchChart() {
-            const startDate = document.getElementById('start-date').value;
-            const endDate = document.getElementById('end-date').value;
-            const generateBtn = document.getElementById('generate-btn');
-            const loadingDiv = document.getElementById('loading');
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
             
-            // 验证日期输入
+            // 驗證日期輸入
             if (!startDate || !endDate) {
-                showError('请选择开始和结束日期');
+                showError('請選擇開始和結束日期');
                 return;
             }
             
             if (new Date(startDate) > new Date(endDate)) {
-                showError('开始日期不能晚于结束日期');
+                showError('開始日期不能晚於結束日期');
                 return;
             }
 
             try {
-                // 显示加载状态
+                // 顯示加載狀態
                 loadingDiv.style.display = 'block';
                 generateBtn.disabled = true;
                 document.getElementById('btn-text').style.display = 'none';
                 document.getElementById('btn-spinner').style.display = 'block';
                 
-                // 清除之前的错误和内容
-                document.getElementById('error-message').style.display = 'none';
+                // 清除之前的錯誤和內容
+                errorDiv.style.display = 'none';
                 clearAllData();
                 
-                // 发送请求
+                // 發送請求
                 const response = await fetch(`${API_ENDPOINT}/api/data`, {
                     method: 'POST',
                     headers: {
@@ -570,27 +580,27 @@
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error || `请求失败 (状态码: ${response.status})`);
+                    throw new Error(errorData.error || `請求失敗 (狀態碼: ${response.status})`);
                 }
 
                 const result = await response.json();
                 
-                // 更新图表
-                updateChart('aircraft-chart', result.charts?.aircraft, '飞机活动架次');
-                updateChart('vessel-chart', result.charts?.vessel, '船舰活动架次');
+                // 更新圖表
+                updateChart('aircraft-chart', result.charts?.aircraft, '飛機活動架次');
+                updateChart('vessel-chart', result.charts?.vessel, '船艦活動架次');
                 
-                // 特殊处理预测图表
+                // 特殊處理預測圖表
                 if (result.charts?.forecast) {
-                    updateChart('forecast-chart', result.charts.forecast, '未来活动预测');
+                    updateChart('forecast-chart', result.charts.forecast, '未來活動預測');
                 } else {
                     document.getElementById('forecast-chart').innerHTML = `
                         <div class="error-placeholder">
                             <div class="icon">⚠️</div>
-                            <p>高级预测模型不可用</p>
-                            <small>正在尝试使用简单预测方法...</small>
+                            <p>高級預測模型不可用</p>
+                            <small>正在嘗試使用簡單預測方法...</small>
                         </div>`;
                     
-                    // 尝试获取简单预测
+                    // 嘗試獲取簡單預測
                     try {
                         const simpleResponse = await fetch(`${API_ENDPOINT}/api/simple-forecast`, {
                             method: 'POST',
@@ -605,42 +615,42 @@
                         
                         if (simpleResponse.ok) {
                             const simpleData = await simpleResponse.json();
-                            updateChart('forecast-chart', simpleData.chart, '简单移动平均预测');
+                            updateChart('forecast-chart', simpleData.chart, '簡單移動平均預測');
                         }
                     } catch (e) {
-                        console.error('获取简单预测失败:', e);
+                        console.error('獲取簡單預測失敗:', e);
                     }
                 }
                 
-                // 更新统计数据
+                // 更新統計數據
                 updateStats(result.stats);
                 
             } catch (error) {
-                console.error('获取数据时出错:', error);
-                showError(error.message || '获取数据时发生错误');
+                console.error('獲取數據時出錯:', error);
+                showError(error.message || '獲取數據時發生錯誤');
                 
-                // 显示错误状态
+                // 顯示錯誤狀態
                 document.getElementById('aircraft-chart').innerHTML = `
                     <div class="error-placeholder">
                         <div class="icon">❌</div>
-                        <p>无法加载飞机活动数据</p>
+                        <p>無法加載飛機活動數據</p>
                     </div>`;
                     
                 document.getElementById('vessel-chart').innerHTML = `
                     <div class="error-placeholder">
                         <div class="icon">❌</div>
-                        <p>无法加载船舰活动数据</p>
+                        <p>無法加載船艦活動數據</p>
                     </div>`;
                     
                 document.getElementById('forecast-chart').innerHTML = `
                     <div class="error-placeholder">
                         <div class="icon">❌</div>
-                        <p>无法加载预测数据</p>
+                        <p>無法加載預測數據</p>
                     </div>`;
                     
                 document.getElementById('stats-content').innerHTML = `
                     <div class="error-placeholder">
-                        <p>无法加载统计数据</p>
+                        <p>無法加載統計數據</p>
                     </div>`;
             } finally {
                 loadingDiv.style.display = 'none';
