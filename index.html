@@ -104,11 +104,16 @@
         <div id="error-message"></div>
         
         <div class="chart-container">
+            <!-- 原有的圖表（可選，若後端不再提供則保留佔位符） -->
             <div class="chart" id="aircraft-chart">
                 <p class="error-placeholder">飛機活動圖表將顯示在這裡</p>
             </div>
             <div class="chart" id="vessel-chart">
                 <p class="error-placeholder">船艦活動圖表將顯示在這裡</p>
+            </div>
+            <!-- 新增的 Prophet 預測圖表 -->
+            <div class="chart" id="forecast-chart">
+                <p class="error-placeholder">預測圖表將顯示在這裡</p>
             </div>
         </div>
         
@@ -165,6 +170,7 @@
         function clearCharts() {
             document.getElementById('aircraft-chart').innerHTML = '<p class="error-placeholder">飛機活動圖表將顯示在這裡</p>';
             document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">船艦活動圖表將顯示在這裡</p>';
+            document.getElementById('forecast-chart').innerHTML = '<p class="error-placeholder">預測圖表將顯示在這裡</p>';
             document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">統計數據將顯示在這裡</p>';
         }
 
@@ -209,7 +215,7 @@
                     throw new Error(result.error || '請求失敗');
                 }
 
-                // 更新飛機圖表
+                // 更新飛機圖表（若後端提供）
                 if (result.charts?.aircraft) {
                     const aircraftImg = document.createElement('img');
                     aircraftImg.src = `data:image/png;base64,${result.charts.aircraft}`;
@@ -219,7 +225,7 @@
                     document.getElementById('aircraft-chart').appendChild(aircraftImg);
                 }
                 
-                // 更新船艦圖表
+                // 更新船艦圖表（若後端提供）
                 if (result.charts?.vessel) {
                     const vesselImg = document.createElement('img');
                     vesselImg.src = `data:image/png;base64,${result.charts.vessel}`;
@@ -227,6 +233,16 @@
                     vesselImg.style.maxHeight = '100%';
                     document.getElementById('vessel-chart').innerHTML = '';
                     document.getElementById('vessel-chart').appendChild(vesselImg);
+                }
+                
+                // 更新預測圖表（Prophet）
+                if (result.charts?.forecast) {
+                    const forecastImg = document.createElement('img');
+                    forecastImg.src = `data:image/png;base64,${result.charts.forecast}`;
+                    forecastImg.style.maxWidth = '100%';
+                    forecastImg.style.maxHeight = '100%';
+                    document.getElementById('forecast-chart').innerHTML = '';
+                    document.getElementById('forecast-chart').appendChild(forecastImg);
                 }
                 
                 // 更新統計數據
@@ -248,6 +264,7 @@
                 // 顯示錯誤狀態
                 document.getElementById('aircraft-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
                 document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
+                document.getElementById('forecast-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
                 document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">無法加載統計數據</p>';
             } finally {
                 loadingDiv.style.display = 'none';
