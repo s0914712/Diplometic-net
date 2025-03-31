@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>軍事活動數據圖表</title>
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -22,6 +21,7 @@
             gap: 15px;
             align-items: center;
             margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         .chart-container {
             display: flex;
@@ -35,6 +35,9 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         button {
             padding: 8px 16px;
@@ -61,7 +64,21 @@
         #error-message {
             color: #d32f2f;
             margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ffcdd2;
+            border-radius: 4px;
+            background-color: #ffebee;
             display: none;
+        }
+        .error-placeholder {
+            color: #757575;
+            font-style: italic;
+        }
+        @media (max-width: 600px) {
+            .form-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
@@ -70,11 +87,15 @@
         <h1>軍事活動數據圖表</h1>
         
         <div class="form-group">
-            <label for="start-date">開始日期:</label>
-            <input type="date" id="start-date">
+            <div>
+                <label for="start-date">開始日期:</label>
+                <input type="date" id="start-date">
+            </div>
             
-            <label for="end-date">結束日期:</label>
-            <input type="date" id="end-date">
+            <div>
+                <label for="end-date">結束日期:</label>
+                <input type="date" id="end-date">
+            </div>
             
             <button id="generate-btn" onclick="fetchChart()">生成圖表</button>
         </div>
@@ -83,13 +104,19 @@
         <div id="error-message"></div>
         
         <div class="chart-container">
-            <div id="aircraft-chart" class="chart"></div>
-            <div id="vessel-chart" class="chart"></div>
+            <div class="chart" id="aircraft-chart">
+                <p class="error-placeholder">飛機活動圖表將顯示在這裡</p>
+            </div>
+            <div class="chart" id="vessel-chart">
+                <p class="error-placeholder">船艦活動圖表將顯示在這裡</p>
+            </div>
         </div>
         
         <div id="stats-container" style="margin-top: 20px;">
             <h3>統計數據</h3>
-            <div id="stats-content"></div>
+            <div id="stats-content">
+                <p class="error-placeholder">統計數據將顯示在這裡</p>
+            </div>
         </div>
     </div>
 
@@ -107,19 +134,38 @@
             document.getElementById('start-date').valueAsDate = startDate;
             document.getElementById('end-date').valueAsDate = endDate;
             
-            // 自動加載初始數據
-            fetchChart();
+            // 檢查服務健康狀態
+            checkHealth();
         });
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_ENDPOINT}/health`);
+                const data = await response.json();
+                
+                if (data.status !== 'ready') {
+                    showError('後端服務正在初始化，請稍後再試');
+                }
+            } catch (error) {
+                showError('無法連接後端服務');
+                console.error('健康檢查失敗:', error);
+            }
+        }
 
         function showError(message) {
             const errorDiv = document.getElementById('error-message');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-            
-            // 5秒後自動隱藏錯誤消息
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function clearCharts() {
+            document.getElementById('aircraft-chart').innerHTML = '<p class="error-placeholder">飛機活動圖表將顯示在這裡</p>';
+            document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">船艦活動圖表將顯示在這裡</p>';
+            document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">統計數據將顯示在這裡</p>';
         }
 
         async function fetchChart() {
@@ -127,7 +173,6 @@
             const endDate = document.getElementById('end-date').value;
             const generateBtn = document.getElementById('generate-btn');
             const loadingDiv = document.getElementById('loading');
-            const errorDiv = document.getElementById('error-message');
             
             // 驗證日期輸入
             if (!startDate || !endDate) {
@@ -144,9 +189,9 @@
                 // 顯示載入狀態
                 loadingDiv.style.display = 'block';
                 generateBtn.disabled = true;
-                errorDiv.style.display = 'none';
+                hideError();
+                clearCharts();
                 
-                // 調用 Cloud Run API
                 const response = await fetch(`${API_ENDPOINT}/api/data`, {
                     method: 'POST',
                     headers: {
@@ -158,39 +203,52 @@
                     }),
                 });
 
+                const result = await response.json();
+                
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                    throw new Error(result.error || '請求失敗');
                 }
 
-                const result = await response.json();
-                console.log("API 響應:", result);
-
                 // 更新飛機圖表
-                Plotly.purge('aircraft-chart');
-                const aircraftImg = document.createElement('img');
-                aircraftImg.src = `data:image/png;base64,${result.charts.aircraft}`;
-                aircraftImg.style.width = '100%';
-                document.getElementById('aircraft-chart').innerHTML = '';
-                document.getElementById('aircraft-chart').appendChild(aircraftImg);
+                if (result.charts?.aircraft) {
+                    const aircraftImg = document.createElement('img');
+                    aircraftImg.src = `data:image/png;base64,${result.charts.aircraft}`;
+                    aircraftImg.style.maxWidth = '100%';
+                    aircraftImg.style.maxHeight = '100%';
+                    document.getElementById('aircraft-chart').innerHTML = '';
+                    document.getElementById('aircraft-chart').appendChild(aircraftImg);
+                }
                 
                 // 更新船艦圖表
-                Plotly.purge('vessel-chart');
-                const vesselImg = document.createElement('img');
-                vesselImg.src = `data:image/png;base64,${result.charts.vessel}`;
-                vesselImg.style.width = '100%';
-                document.getElementById('vessel-chart').innerHTML = '';
-                document.getElementById('vessel-chart').appendChild(vesselImg);
+                if (result.charts?.vessel) {
+                    const vesselImg = document.createElement('img');
+                    vesselImg.src = `data:image/png;base64,${result.charts.vessel}`;
+                    vesselImg.style.maxWidth = '100%';
+                    vesselImg.style.maxHeight = '100%';
+                    document.getElementById('vessel-chart').innerHTML = '';
+                    document.getElementById('vessel-chart').appendChild(vesselImg);
+                }
                 
                 // 更新統計數據
-                document.getElementById('stats-content').innerHTML = `
-                    <p>飛機總架次: <strong>${result.stats.total_aircraft}</strong></p>
-                    <p>船艦總架次: <strong>${result.stats.total_vessel}</strong></p>
-                `;
+                if (result.stats) {
+                    let statsHTML = '';
+                    if (result.stats.total_aircraft !== undefined) {
+                        statsHTML += `<p>飛機總架次: <strong>${result.stats.total_aircraft}</strong></p>`;
+                    }
+                    if (result.stats.total_vessel !== undefined) {
+                        statsHTML += `<p>船艦總架次: <strong>${result.stats.total_vessel}</strong></p>`;
+                    }
+                    document.getElementById('stats-content').innerHTML = statsHTML || '<p>無統計數據</p>';
+                }
                 
             } catch (error) {
                 console.error('獲取圖表時出錯:', error);
                 showError(error.message || '獲取圖表數據時發生錯誤');
+                
+                // 顯示錯誤狀態
+                document.getElementById('aircraft-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
+                document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
+                document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">無法加載統計數據</p>';
             } finally {
                 loadingDiv.style.display = 'none';
                 generateBtn.disabled = false;
