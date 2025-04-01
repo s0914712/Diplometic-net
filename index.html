@@ -4,7 +4,267 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>國防部軍事動態統計圖表</title>
+    <style><!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國防部軍事動態統計圖表</title>
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .form-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .chart-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .chart {
+            flex: 1;
+            min-width: 300px;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        input[type="date"] {
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #loading {
+            display: none;
+            margin: 10px 0;
+            color: #4285f4;
+        }
+        #error-message {
+            color: #d32f2f;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ffcdd2;
+            border-radius: 4px;
+            background-color: #ffebee;
+            display: none;
+        }
+        .error-placeholder {
+            color: #757575;
+            font-style: italic;
+        }
+        /* 新增的描述區塊樣式 */
+        #description-container {
+            margin-top: 20px;
+        }
+        #description-content {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .description-item {
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .description-item:last-child {
+            border-bottom: none;
+        }
+        .description-date {
+            font-weight: bold;
+            color: #4285f4;
+        }
+        @media (max-width: 600px) {
+            .form-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .chart-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>國防部軍事動態統計圖表</h1>
+        
+        <div class="form-group">
+            <div>
+                <label for="start-date">開始日期:</label>
+                <input type="date" id="start-date">
+            </div>
+            
+            <div>
+                <label for="end-date">結束日期:</label>
+                <input type="date" id="end-date">
+            </div>
+            
+            <button id="generate-btn" onclick="fetchData()">生成數據</button>
+        </div>
+        
+        <div id="loading">載入中，請稍候...</div>
+        <div id="error-message"></div>
+        
+        <!-- 描述數據區塊 -->
+        <div id="description-container">
+            <h3>軍事動態描述</h3>
+            <div id="description-content">
+                <p class="error-placeholder">軍事動態描述將顯示在這裡</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 設置 Google Cloud Function 端點
+        const API_ENDPOINT = 'https://record-1087471739366.us-central1.run.app';
+        
+        // 在頁面加載完成後設置默認日期
+        document.addEventListener('DOMContentLoaded', function() {
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 30);
+            
+            document.getElementById('start-date').valueAsDate = startDate;
+            document.getElementById('end-date').valueAsDate = endDate;
+            
+            checkHealth();
+        });
+
+        async function checkHealth() {
+            try {
+                const response = await fetch(`${API_ENDPOINT}/health`);
+                const data = await response.json();
+                
+                if (data.status !== 'ready') {
+                    showError('後端服務正在初始化，請稍後再試');
+                }
+            } catch (error) {
+                showError('無法連接後端服務');
+                console.error('健康檢查失敗:', error);
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function clearData() {
+            document.getElementById('description-content').innerHTML = '<p class="error-placeholder">軍事動態描述將顯示在這裡</p>';
+        }
+
+        async function fetchData() {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const generateBtn = document.getElementById('generate-btn');
+            const loadingDiv = document.getElementById('loading');
+            
+            // 驗證日期輸入
+            if (!startDate || !endDate) {
+                showError('請選擇開始和結束日期');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                showError('開始日期不能晚於結束日期');
+                return;
+            }
+
+            try {
+                // 顯示載入狀態
+                loadingDiv.style.display = 'block';
+                generateBtn.disabled = true;
+                hideError();
+                clearData();
+                
+                const response = await fetch(`${API_ENDPOINT}/api/data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        start_date: startDate,
+                        end_date: endDate,
+                    }),
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '請求失敗');
+                }
+
+                // 更新描述數據
+                if (result.data && result.data.length > 0) {
+                    const descriptionContent = document.getElementById('description-content');
+                    descriptionContent.innerHTML = ''; // 清空占位符
+
+                    result.data.forEach(item => {
+                        const descDiv = document.createElement('div');
+                        descDiv.classList.add('description-item');
+                        
+                        const dateSpan = document.createElement('span');
+                        dateSpan.classList.add('description-date');
+                        dateSpan.textContent = item.date;
+                        
+                        const descP = document.createElement('p');
+                        descP.textContent = item.description;
+                        
+                        descDiv.appendChild(dateSpan);
+                        descDiv.appendChild(descP);
+                        descriptionContent.appendChild(descDiv);
+                    });
+                } else {
+                    document.getElementById('description-content').innerHTML = '<p>指定時間範圍內無數據</p>';
+                }
+                
+            } catch (error) {
+                console.error('獲取數據時出錯:', error);
+                showError(error.message || '獲取數據時發生錯誤');
+                document.getElementById('description-content').innerHTML = '<p class="error-placeholder">無法加載描述數據</p>';
+            } finally {
+                loadingDiv.style.display = 'none';
+                generateBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
         body {
             font-family: Arial, sans-serif;
             max-width: 1200px;
