@@ -1,161 +1,259 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <!-- 保持原有样式不变 -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>軍事活動數據圖表</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .form-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .chart-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .chart {
+            flex: 1;
+            min-width: 300px;
+            height: 400px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        input[type="date"] {
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        #loading {
+            display: none;
+            margin: 10px 0;
+            color: #4285f4;
+        }
+        #error-message {
+            color: #d32f2f;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ffcdd2;
+            border-radius: 4px;
+            background-color: #ffebee;
+            display: none;
+        }
+        .error-placeholder {
+            color: #757575;
+            font-style: italic;
+        }
+        @media (max-width: 600px) {
+            .form-group {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <!-- 头部保持不变 -->
+        <h1>軍事活動數據圖表</h1>
         
-        <div class="control-panel">
-            <div class="form-group">
-                <div class="date-input">
-                    <label for="start-date">开始日期:</label>
-                    <input type="date" id="start-date">
-                </div>
-                
-                <div class="date-input">
-                    <label for="end-date">结束日期:</label>
-                    <input type="date" id="end-date">
-                </div>
-                
-                <!-- 拆分按钮 -->
-                <div class="button-group">
-                    <button id="generate-chart-btn" class="primary-btn">
-                        <span>生成统计图表</span>
-                        <span class="spinner" style="display: none;"></span>
-                    </button>
-                    <button id="generate-forecast-btn" class="secondary-btn">
-                        <span>生成预测分析</span>
-                        <span class="spinner" style="display: none;"></span>
-                    </button>
-                </div>
+        <div class="form-group">
+            <div>
+                <label for="start-date">開始日期:</label>
+                <input type="date" id="start-date">
             </div>
-
-            <!-- 加载状态和错误提示保持不变 -->
+            
+            <div>
+                <label for="end-date">結束日期:</label>
+                <input type="date" id="end-date">
+            </div>
+            
+            <button id="generate-btn" onclick="fetchChart()">生成圖表</button>
         </div>
-
-        <!-- 图表容器保持不变 -->
+        
+        <div id="loading">載入中，請稍候...</div>
+        <div id="error-message"></div>
+        
+        <div class="chart-container">
+            <div class="chart" id="aircraft-chart">
+                <p class="error-placeholder">飛機活動圖表將顯示在這裡</p>
+            </div>
+            <div class="chart" id="vessel-chart">
+                <p class="error-placeholder">船艦活動圖表將顯示在這裡</p>
+            </div>
+        </div>
+        
+        <div id="stats-container" style="margin-top: 20px;">
+            <h3>統計數據</h3>
+            <div id="stats-content">
+                <p class="error-placeholder">統計數據將顯示在這裡</p>
+            </div>
+        </div>
     </div>
 
     <script>
-        // 配置不同服务的API端点
-        const CHART_API = 'https://chart-service.example.com/api/data';
-        const FORECAST_API = 'https://forecast-service.example.com/api/forecast';
-
-        // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            // 绑定不同按钮的事件
-            document.getElementById('generate-chart-btn').addEventListener('click', fetchCharts);
-            document.getElementById('generate-forecast-btn').addEventListener('click', fetchForecast);
+        // 設置 Cloud Run 服務端點
+        const API_ENDPOINT = 'https://calendar-1087471739366.us-central1.run.app';
+        
+        // 在頁面加載完成後設置默認日期
+        document.addEventListener('DOMContentLoaded', function() {
+            // 設置默認日期（最近30天）
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 30);
             
-            // 其他初始化代码保持不变...
+            document.getElementById('start-date').valueAsDate = startDate;
+            document.getElementById('end-date').valueAsDate = endDate;
+            
+            // 檢查服務健康狀態
+            checkHealth();
         });
 
-        // 统计图表请求函数
-        async function fetchCharts() {
-            const loadingId = 'chart-loading';
-            const button = document.getElementById('generate-chart-btn');
-            
+        async function checkHealth() {
             try {
-                showLoading(button, loadingId);
-                clearCharts();
+                const response = await fetch(`${API_ENDPOINT}/health`);
+                const data = await response.json();
                 
-                const { startDate, endDate } = validateDates();
-                const response = await fetch(CHART_API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ start_date: startDate, end_date: endDate })
-                });
-
-                const result = await handleResponse(response);
-                updateChart('aircraft-chart', result.charts.aircraft, '飞机活动架次');
-                updateChart('vessel-chart', result.charts.vessel, '船舰活动架次');
-                updateStats(result.stats);
-
+                if (data.status !== 'ready') {
+                    showError('後端服務正在初始化，請稍後再試');
+                }
             } catch (error) {
-                handleError(error, '统计图表');
-            } finally {
-                hideLoading(button, loadingId);
+                showError('無法連接後端服務');
+                console.error('健康檢查失敗:', error);
             }
         }
 
-        // 预测请求函数
-        async function fetchForecast() {
-            const loadingId = 'forecast-loading';
-            const button = document.getElementById('generate-forecast-btn');
-            
-            try {
-                showLoading(button, loadingId);
-                clearForecast();
-
-                const { startDate, endDate } = validateDates();
-                const response = await fetch(FORECAST_API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ start_date: startDate, end_date: endDate })
-                });
-
-                const result = await handleResponse(response);
-                updateChart('forecast-chart', result.forecast, '未来活动预测');
-
-            } catch (error) {
-                handleError(error, '预测分析');
-            } finally {
-                hideLoading(button, loadingId);
-            }
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
         }
 
-        // 通用响应处理
-        async function handleResponse(response) {
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `请求失败 (状态码: ${response.status})`);
-            }
-            return response.json();
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
         }
 
-        // 日期验证函数
-        function validateDates() {
+        function clearCharts() {
+            document.getElementById('aircraft-chart').innerHTML = '<p class="error-placeholder">飛機活動圖表將顯示在這裡</p>';
+            document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">船艦活動圖表將顯示在這裡</p>';
+            document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">統計數據將顯示在這裡</p>';
+        }
+
+        async function fetchChart() {
             const startDate = document.getElementById('start-date').value;
             const endDate = document.getElementById('end-date').value;
-
-            if (!startDate || !endDate) throw new Error('请选择开始和结束日期');
-            if (new Date(startDate) > new Date(endDate)) throw new Error('开始日期不能晚于结束日期');
+            const generateBtn = document.getElementById('generate-btn');
+            const loadingDiv = document.getElementById('loading');
             
-            return { startDate, endDate };
-        }
-
-        // 加载状态管理
-        function showLoading(button, loadingId) {
-            button.disabled = true;
-            button.querySelector('span:first-child').style.display = 'none';
-            button.querySelector('.spinner').style.display = 'inline-block';
-        }
-
-        function hideLoading(button, loadingId) {
-            button.disabled = false;
-            button.querySelector('span:first-child').style.display = 'inline-block';
-            button.querySelector('.spinner').style.display = 'none';
-        }
-
-        // 错误处理
-        function handleError(error, serviceName) {
-            console.error(`${serviceName}请求失败:`, error);
-            showError(`${serviceName}获取失败: ${error.message}`);
+            // 驗證日期輸入
+            if (!startDate || !endDate) {
+                showError('請選擇開始和結束日期');
+                return;
+            }
             
-            // 特定错误处理
-            if(serviceName === '预测分析'){
-                document.getElementById('forecast-chart').innerHTML = `
-                    <div class="error-placeholder">
-                        <div class="icon">⚠️</div>
-                        <p>预测服务暂时不可用</p>
-                        <small>${error.message}</small>
-                    </div>`;
+            if (new Date(startDate) > new Date(endDate)) {
+                showError('開始日期不能晚於結束日期');
+                return;
+            }
+
+            try {
+                // 顯示載入狀態
+                loadingDiv.style.display = 'block';
+                generateBtn.disabled = true;
+                hideError();
+                clearCharts();
+                
+                const response = await fetch(`${API_ENDPOINT}/api/data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        start_date: startDate,
+                        end_date: endDate,
+                    }),
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(result.error || '請求失敗');
+                }
+
+                // 更新飛機圖表
+                if (result.charts?.aircraft) {
+                    const aircraftImg = document.createElement('img');
+                    aircraftImg.src = `data:image/png;base64,${result.charts.aircraft}`;
+                    aircraftImg.style.maxWidth = '100%';
+                    aircraftImg.style.maxHeight = '100%';
+                    document.getElementById('aircraft-chart').innerHTML = '';
+                    document.getElementById('aircraft-chart').appendChild(aircraftImg);
+                }
+                
+                // 更新船艦圖表
+                if (result.charts?.vessel) {
+                    const vesselImg = document.createElement('img');
+                    vesselImg.src = `data:image/png;base64,${result.charts.vessel}`;
+                    vesselImg.style.maxWidth = '100%';
+                    vesselImg.style.maxHeight = '100%';
+                    document.getElementById('vessel-chart').innerHTML = '';
+                    document.getElementById('vessel-chart').appendChild(vesselImg);
+                }
+                
+                // 更新統計數據
+                if (result.stats) {
+                    let statsHTML = '';
+                    if (result.stats.total_aircraft !== undefined) {
+                        statsHTML += `<p>飛機總架次: <strong>${result.stats.total_aircraft}</strong></p>`;
+                    }
+                    if (result.stats.total_vessel !== undefined) {
+                        statsHTML += `<p>船艦總架次: <strong>${result.stats.total_vessel}</strong></p>`;
+                    }
+                    document.getElementById('stats-content').innerHTML = statsHTML || '<p>無統計數據</p>';
+                }
+                
+            } catch (error) {
+                console.error('獲取圖表時出錯:', error);
+                showError(error.message || '獲取圖表數據時發生錯誤');
+                
+                // 顯示錯誤狀態
+                document.getElementById('aircraft-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
+                document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
+                document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">無法加載統計數據</p>';
+            } finally {
+                loadingDiv.style.display = 'none';
+                generateBtn.disabled = false;
             }
         }
-
-        // 其他辅助函数保持不变...
     </script>
 </body>
 </html>
