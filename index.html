@@ -74,10 +74,36 @@
             color: #757575;
             font-style: italic;
         }
+        #probability-container {
+            margin-top: 20px;
+        }
+        #probability-content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .probability-item {
+            padding: 10px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+        }
+        .probability-red {
+            background-color: #d32f2f; /* 紅色 */
+        }
+        .probability-blue {
+            background-color: #4285f4; /* 藍色 */
+        }
+        .probability-green {
+            background-color: #0f9d58; /* 綠色 */
+        }
         @media (max-width: 600px) {
             .form-group {
                 flex-direction: column;
                 align-items: flex-start;
+            }
+            #probability-content {
+                flex-direction: column;
             }
         }
     </style>
@@ -116,6 +142,13 @@
             <h3>統計數據</h3>
             <div id="stats-content">
                 <p class="error-placeholder">統計數據將顯示在這裡</p>
+            </div>
+        </div>
+
+        <div id="probability-container">
+            <h3>未來三天超過40架次的機率</h3>
+            <div id="probability-content">
+                <p class="error-placeholder">機率數據將顯示在這裡</p>
             </div>
         </div>
     </div>
@@ -166,6 +199,7 @@
             document.getElementById('aircraft-chart').innerHTML = '<p class="error-placeholder">飛機活動圖表將顯示在這裡</p>';
             document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">船艦活動圖表將顯示在這裡</p>';
             document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">統計數據將顯示在這裡</p>';
+            document.getElementById('probability-content').innerHTML = '<p class="error-placeholder">機率數據將顯示在這裡</p>';
         }
 
         async function fetchChart() {
@@ -240,6 +274,24 @@
                     }
                     document.getElementById('stats-content').innerHTML = statsHTML || '<p>無統計數據</p>';
                 }
+
+                // 更新未來三天機率
+                if (result.probabilities?.next_three_days) {
+                    const probs = result.probabilities.next_three_days;
+                    const probContent = document.getElementById('probability-content');
+                    probContent.innerHTML = ''; // 清空占位符
+
+                    // 使用紅藍綠顯示三天機率
+                    const colors = ['probability-red', 'probability-blue', 'probability-green'];
+                    let i = 0;
+                    for (const [date, prob] of Object.entries(probs)) {
+                        const probDiv = document.createElement('div');
+                        probDiv.classList.add('probability-item', colors[i]);
+                        probDiv.textContent = `${date}: ${prob.toFixed(1)}%`;
+                        probContent.appendChild(probDiv);
+                        i++;
+                    }
+                }
                 
             } catch (error) {
                 console.error('獲取圖表時出錯:', error);
@@ -249,6 +301,7 @@
                 document.getElementById('aircraft-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
                 document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
                 document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">無法加載統計數據</p>';
+                document.getElementById('probability-content').innerHTML = '<p class="error-placeholder">無法加載機率數據</p>';
             } finally {
                 loadingDiv.style.display = 'none';
                 generateBtn.disabled = false;
