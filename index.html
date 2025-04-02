@@ -74,10 +74,10 @@
             color: #757575;
             font-style: italic;
         }
-        #description-container {
+        #description-container, #stats-container, #probabilities-container {
             margin-top: 20px;
         }
-        #description-content {
+        #description-content, #stats-content, #probabilities-content {
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 10px;
@@ -96,13 +96,27 @@
             font-weight: bold;
             color: #4285f4;
         }
-        #stats-container {
-            margin-top: 20px;
+        .probability-item {
+            margin-bottom: 10px;
         }
-        #stats-content {
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
+        .probability-date {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .probability-value {
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+        }
+        .probability-green {
+            background-color: #4caf50; /* 綠色 */
+        }
+        .probability-yellow {
+            background-color: #ffeb3b; /* 黃色 */
+            color: black; /* 黃色背景用黑色文字提高可讀性 */
+        }
+        .probability-red {
+            background-color: #f44336; /* 紅色 */
         }
         @media (max-width: 600px) {
             .form-group {
@@ -156,6 +170,13 @@
                 <p class="error-placeholder">軍事動態描述將顯示在這裡</p>
             </div>
         </div>
+
+        <div id="probabilities-container">
+            <h3>未來三天超過20架次的機率</h3>
+            <div id="probabilities-content">
+                <p class="error-placeholder">機率數據將顯示在這裡</p>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -204,6 +225,7 @@
             document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">船艦活動圖表將顯示在這裡</p>';
             document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">統計數據將顯示在這裡</p>';
             document.getElementById('description-content').innerHTML = '<p class="error-placeholder">軍事動態描述將顯示在這裡</p>';
+            document.getElementById('probabilities-content').innerHTML = '<p class="error-placeholder">機率數據將顯示在這裡</p>';
         }
 
         async function fetchData() {
@@ -304,6 +326,40 @@
                 } else {
                     descriptionContent.innerHTML = '<p>指定時間範圍內無數據</p>';
                 }
+
+                // 更新未來三天機率
+                const probabilitiesContent = document.getElementById('probabilities-content');
+                probabilitiesContent.innerHTML = '';
+                if (chartResult.probabilities?.next_three_days) {
+                    const probabilities = chartResult.probabilities.next_three_days;
+                    for (const [date, prob] of Object.entries(probabilities)) {
+                        const probDiv = document.createElement('div');
+                        probDiv.classList.add('probability-item');
+                        
+                        const dateSpan = document.createElement('span');
+                        dateSpan.classList.add('probability-date');
+                        dateSpan.textContent = date;
+                        
+                        const probSpan = document.createElement('span');
+                        probSpan.classList.add('probability-value');
+                        probSpan.textContent = `${prob.toFixed(1)}%`;
+                        
+                        // 根據機率值設置顏色
+                        if (prob < 30) {
+                            probSpan.classList.add('probability-green');
+                        } else if (prob >= 30 && prob <= 50) {
+                            probSpan.classList.add('probability-yellow');
+                        } else {
+                            probSpan.classList.add('probability-red');
+                        }
+                        
+                        probDiv.appendChild(dateSpan);
+                        probDiv.appendChild(probSpan);
+                        probabilitiesContent.appendChild(probDiv);
+                    }
+                } else {
+                    probabilitiesContent.innerHTML = '<p>無機率數據</p>';
+                }
                 
             } catch (error) {
                 console.error('獲取數據時出錯:', error);
@@ -312,6 +368,7 @@
                 document.getElementById('vessel-chart').innerHTML = '<p class="error-placeholder">無法加載圖表數據</p>';
                 document.getElementById('stats-content').innerHTML = '<p class="error-placeholder">無法加載統計數據</p>';
                 document.getElementById('description-content').innerHTML = '<p class="error-placeholder">無法加載描述數據</p>';
+                document.getElementById('probabilities-content').innerHTML = '<p class="error-placeholder">無法加載機率數據</p>';
             } finally {
                 loadingDiv.style.display = 'none';
                 generateBtn.disabled = false;
