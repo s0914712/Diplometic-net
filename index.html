@@ -10,11 +10,13 @@
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
+            display: flex;
         }
         .container {
             display: flex;
             flex-direction: column;
             gap: 20px;
+            flex: 1;
         }
         .form-group {
             display: flex;
@@ -92,7 +94,7 @@
         .description-item:last-child {
             border-bottom: none;
         }
-        .description-date {
+        .  {
             font-weight: bold;
             color: #4285f4;
         }
@@ -109,27 +111,81 @@
             color: white;
         }
         .probability-green {
-            background-color: #4caf50; /* 綠色 */
+            background-color: #4caf50;
         }
         .probability-yellow {
-            background-color: #ffeb3b; /* 黃色 */
-            color: black; /* 黃色背景用黑色文字提高可讀性 */
+            background-color: #ffeb3b;
+            color: black;
         }
         .probability-red {
-            background-color: #f44336; /* 紅色 */
+            background-color: #f44336;
+        }
+        /* 新增的使用者區域樣式 */
+        .user-panel {
+            width: 200px;
+            margin-right: 20px;
+            position: relative;
+        }
+        .user-name {
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .article-list {
+            display: none;
+            position: absolute;
+            left: 100%;
+            top: 0;
+            width: 300px;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .user-name:hover + .article-list,
+        .article-list:hover {
+            display: block;
+        }
+        .article-list a {
+            display: block;
+            padding: 5px 0;
+            color: #4285f4;
+            text-decoration: none;
+        }
+        .article-list a:hover {
+            text-decoration: underline;
         }
         @media (max-width: 600px) {
-            .form-group {
+            body {
                 flex-direction: column;
-                align-items: flex-start;
             }
-            .chart-container {
-                flex-direction: column;
+            .user-panel {
+                width: 100%;
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+            .article-list {
+                position: static;
+                width: 100%;
+                box-shadow: none;
             }
         }
     </style>
 </head>
 <body>
+    <div class="user-panel">
+        <div class="user-name">文章作者</div>
+        <div class="article-list">
+            <a href="https://medium.com/@s0914712/從資料科學-解讀臺灣海峽軍事動態-890b24120fef" target="_blank">從資料科學-解讀臺灣海峽軍事動態</a>
+            <a href="https://medium.com/@s0914712/震撼揭秘-ai-神預測-解放軍臺海行動與空警500現身-準確率竟高達-98-59-c6b2895f28ee" target="_blank">震撼揭秘-ai-神預測-解放軍臺海行動與空警500現身-準確率竟高達-98</a>
+            <a href="https://medium.com/@s0914712/i-introduction-chinese-military-aircraft-and-warships-frequently-extend-from-the-southwestern-d5f715fc75f2" target="_blank">日本周圍航艦預測</a>
+        </div>
+    </div>
+
     <div class="container">
         <h1>國防部軍事動態統計圖表</h1>
         
@@ -142,7 +198,7 @@
                 <label for="end-date">結束日期:</label>
                 <input type="date" id="end-date">
             </div>
-            <button id="generate-btn" onclick="fetchData()">生成數據</button>
+            <button id="generate-btn" onclick="fetchData()">生成數据</button>
         </div>
         
         <div id="loading">載入中，請稍候...</div>
@@ -250,7 +306,6 @@
                 hideError();
                 clearData();
                 
-                // 同時發送請求到兩個端點
                 const [textResponse, chartResponse] = await Promise.all([
                     fetch(`${TEXT_API_ENDPOINT}/api/data`, {
                         method: 'POST',
@@ -274,7 +329,6 @@
                     throw new Error(chartResult.error || '圖表數據請求失敗');
                 }
 
-                // 更新圖表
                 if (chartResult.charts?.aircraft) {
                     const aircraftImg = document.createElement('img');
                     aircraftImg.src = `data:image/png;base64,${chartResult.charts.aircraft}`;
@@ -292,7 +346,6 @@
                     document.getElementById('vessel-chart').appendChild(vesselImg);
                 }
 
-                // 更新統計數據
                 if (chartResult.stats) {
                     let statsHTML = '';
                     if (chartResult.stats.total_aircraft !== undefined) {
@@ -304,7 +357,6 @@
                     document.getElementById('stats-content').innerHTML = statsHTML || '<p>無統計數據</p>';
                 }
 
-                // 更新描述數據
                 const descriptionContent = document.getElementById('description-content');
                 descriptionContent.innerHTML = '';
                 if (textResult.data && textResult.data.length > 0) {
@@ -327,7 +379,6 @@
                     descriptionContent.innerHTML = '<p>指定時間範圍內無數據</p>';
                 }
 
-                // 更新未來三天機率
                 const probabilitiesContent = document.getElementById('probabilities-content');
                 probabilitiesContent.innerHTML = '';
                 if (chartResult.probabilities?.next_three_days) {
@@ -344,7 +395,6 @@
                         probSpan.classList.add('probability-value');
                         probSpan.textContent = `${prob.toFixed(1)}%`;
                         
-                        // 根據機率值設置顏色
                         if (prob < 30) {
                             probSpan.classList.add('probability-green');
                         } else if (prob >= 30 && prob <= 50) {
