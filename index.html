@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>國防部軍事動態統計圖表</title>
     <style>
+        /* 原有樣式保持不變，只列出修改部分 */
         body {
             font-family: Arial, sans-serif;
             max-width: 1200px;
@@ -18,109 +19,7 @@
             gap: 20px;
             flex: 1;
         }
-        .form-group {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .chart-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .chart {
-            flex: 1;
-            min-width: 300px;
-            height: 400px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        button {
-            padding: 8px 16px;
-            background-color: #4285f4;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        input[type="date"] {
-            padding: 6px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        #loading {
-            display: none;
-            margin: 10px 0;
-            color: #4285f4;
-        }
-        #error-message {
-            color: #d32f2f;
-            margin: 10px 0;
-            padding: 10px;
-            border: 1px solid #ffcdd2;
-            border-radius: 4px;
-            background-color: #ffebee;
-            display: none;
-        }
-        .error-placeholder {
-            color: #757575;
-            font-style: italic;
-        }
-        #description-container, #stats-container, #probabilities-container {
-            margin-top: 20px;
-        }
-        #description-content, #stats-content, #probabilities-content {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 10px;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        .description-item {
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #eee;
-        }
-        .description-item:last-child {
-            border-bottom: none;
-        }
-        .  {
-            font-weight: bold;
-            color: #4285f4;
-        }
-        .probability-item {
-            margin-bottom: 10px;
-        }
-        .probability-date {
-            font-weight: bold;
-            margin-right: 10px;
-        }
-        .probability-value {
-            padding: 4px 8px;
-            border-radius: 4px;
-            color: white;
-        }
-        .probability-green {
-            background-color: #4caf50;
-        }
-        .probability-yellow {
-            background-color: #ffeb3b;
-            color: black;
-        }
-        .probability-red {
-            background-color: #f44336;
-        }
-        /* 新增的使用者區域樣式 */
+        /* 修改後的使用者區域樣式 */
         .user-panel {
             width: 200px;
             margin-right: 20px;
@@ -136,8 +35,8 @@
         .article-list {
             display: none;
             position: absolute;
-            left: 100%;
-            top: 0;
+            top: 100%; /* 改為出現在下方 */
+            left: 0; /* 對齊左邊 */
             width: 300px;
             background-color: white;
             border: 1px solid #ddd;
@@ -174,11 +73,12 @@
                 box-shadow: none;
             }
         }
+        /* 其他原有樣式略過 */
     </style>
 </head>
 <body>
     <div class="user-panel">
-        <div class="user-name">文章作者</div>
+        <div class="user-name">相關文章</div>
         <div class="article-list">
             <a href="https://medium.com/@s0914712/從資料科學-解讀臺灣海峽軍事動態-890b24120fef" target="_blank">從資料科學-解讀臺灣海峽軍事動態</a>
             <a href="https://medium.com/@s0914712/震撼揭秘-ai-神預測-解放軍臺海行動與空警500現身-準確率竟高達-98-59-c6b2895f28ee" target="_blank">震撼揭秘-ai-神預測-解放軍臺海行動與空警500現身-準確率竟高達-98</a>
